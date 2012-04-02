@@ -4,7 +4,7 @@ package Devel::Decouple;
 use strict;
 use warnings;
 use Carp;
-use version; our $VERSION = qv(0.0.1);
+use version; our $VERSION = qv(0.0.2);
 
 use base 'Exporter';
 our @EXPORT = (qw{ from function functions as default_sub preserved });
@@ -56,18 +56,24 @@ sub document {
 
 sub modules {
     my $self = shift;
-    return @{ $self->{_MODULES_} };
+    return exists $self->{_MODULES_}
+        ? @{ $self->{_MODULES_} }
+        : undef;
 }
 
 sub called_imports{
     my $self = shift;
-    return @{ $self->{_CALLED_IMPORTS_} };
+    return exists $self->{_CALLED_IMPORTS_}
+        ? @{ $self->{_CALLED_IMPORTS_} }
+        : undef;
 }
 
 sub all_functions {
     my $self = shift;
     
-    return @{Class::Inspector->functions( $self->module )};
+    return $self->module
+        ? @{Class::Inspector->functions( $self->module )}
+        : undef;
 }
 
 sub revert{
@@ -82,8 +88,9 @@ sub revert{
 sub report{
     my $self = shift;
     
-    my $report = $self->_build_report;
-    return $report;
+    return $self->module
+        ? $self->_build_report
+        : die qq{ 'report' called on uninitialized object };
 }
 
 ### EXPORTS FOR SYNTACTIC SUGAR: ###########
@@ -241,7 +248,7 @@ Then, perhaps in a test file, you can redefine all those functions easily to dec
     # imported functions as no-ops... the default
     
     my $DD = Devel::Decouple->new();
-    $DD->decouple 'Some::Module';
+    $DD->decouple( 'Some::Module' );
     
     
 This module also provides for a high degree of customization of how, or whether, functions will be redefined, and to do so there is a clean declarative syntax.
@@ -249,34 +256,34 @@ This module also provides for a high degree of customization of how, or whether,
     # only decouple the named module from those modules that are explicitly listed
     
     my @modules = qw{ Another::Module And::Another };
-    $DD->decouple 'Some::Module', from @modules;            # you MUST use a literal array here, not a list!
+    $DD->decouple( 'Some::Module', from @modules );         # you MUST use a literal array here, not a list!
     
     
     # use the default (no-op) code stub... except where an alternative is
     # specified or the original imported function is explicitly preserved
     
     my @stooges = qw{ larry moe curly };
-    $DD->decouple 'Some::Module',
+    $DD->decouple( 'Some::Module',
             function 'foo', as { return 2.167 },
             function 'bar', as { return 'hello' },
             function 'baz', preserved,
             functions @stooges,                             # again, you MUST use a literal array here!
-                            as { return "I'm a stooge!" };
+                            as { return "I'm a stooge!" });
     
     
     # define a custom default code stub, as with this simple stack trace,
     # that re-dispatches to the original code
     
-    $DD->decouple 'Some::Module',
-            default_sub, as { warn 'calling ',  (caller(0))[3],
-                                   ' from ',    (caller(1))[3],
-                                   ' at line ', (caller(0))[2];
-                              return shift->(@_) };
+    $DD->decouple( 'Some::Module',
+            default_sub, as { warn "calling '",  (caller(0))[3],
+                                   "' from ",    (caller(1))[3],
+                                   " at line ",  (caller(0))[2];
+                              return shift->(@_) });
     
     
 =head1 DESCRIPTION
 
-When testing software it's often useful to use dummy, or 'mock', objects to represent external dependencies. This practice presupposes that the code being tested is object-oriented and can usually simply accept these objects to its constructor, i.e. the dependencies are loosly-coupled and we can use simple dependency-injection tactics to test the code.
+When testing software it's often useful to use dummy, or 'mock', objects to represent external dependencies. This practice presupposes that the code being tested is object-oriented and can usually simply accept these objects to its constructor, i.e. the dependencies are loosely-coupled and we can use simple dependency-injection tactics to test the code.
 
 If only the world were always so simple.
 
@@ -293,47 +300,82 @@ C<Devel::Decouple> is designed to do static analysis on the parts of the code th
 
 =head2 new
 
+=over
+
 A simple contructor. It takes no arguments and returns an empty object.
 
+=back
 
 =head2 decouple
 
+=over
+
 A method to specify what and how to decouple the code in question. Please refer to the L<SYNOPSIS> and L<SYNTACTIC SUGAR> sections for full details about the options taken and how to use them.
+
+=back
 
 
 =head2 report
 
+=over
+
 Return a simple formatted report about the use of imported functions.
+
+=back
 
 
 =head2 revert [LIST]
 
+=over
+
 Un-patch the functions given in LIST.
+
+=back
 
 
 =head2 module
 
+=over
+
 Returns the name of the module being operated upon.
+
+=back
 
 
 =head2 document
 
+=over
+
 Returns the canonical name of the module being operated upon.
+
+=back
 
 
 =head2 modules
 
+=over
+
 Returns the names of the modules that are being decoupled from the module being operated upon. That is, either the constrained list of modules given to C<decouple> in the C<from> sub-clause (but only if their functions were actually called), or, if unconstrained, the list of all modules whose exported functions were actually called in the primary code.
+
+=back
 
 
 =head2 called_imports
 
+=over
+
 Returns the list of all imported functions that were actually called.
+
+=back
 
 
 =head2 all_functions
 
+=over
+
 Returns the list of all functions, but not methods, in the primary code's immediate namespace.
+
+=back
 
 
 
@@ -346,27 +388,45 @@ The order of the clauses is significant but intuitive. The first clause is alway
 The special marker C<preserved> is used in place of an C<as> sub-clause to indicate that no custom behavior should be added to the symbol table for the entity in question.
 
 
-=head2 C<from [@literal_array]>
+=head2 from [@literal_array]
+
+=over
 
 Specify the explicit list of modules to decouple from the primary module. If not provided C<Devel::Decouple> will default to all modules whose imported functions were actually called.
 
+=back
 
-=head2 C<function [STRING]>
+
+=head2 function [STRING]
+
+=over
 
 The name of a function in the primary module's name-space for which you wish to specify custom behavior. Use an C<as> clause to define the behavior itself.
 
+=back
 
-=head2 C<functions [@literal_array]>
+
+=head2 functions [@literal_array]
+
+=over
 
 The names of one or more functions in the primary module's name-space for which you wish to specify custom I<shared> behavior. Use an C<as> clause to define the behavior itself.
 
+=back
 
-=head2 C<as [{bare_code_block} | \&sub_ref]>
+
+=head2 as [{bare_code_block} | \&sub_ref]
+
+=over
 
 Behavior to install in the symbol table. The C<as> sub-clause must follow C<function>, C<functions>, or C<default_sub> separated by a comma.
 
+=back
 
-=head2 C<default_sub>
+
+=head2 default_sub
+
+=over
 
 Specify default behavior for any called function that has no other explicitly defined custom behavior and which is not C<preserved>. Use an C<as> clause to define the behavior itself. If not specified the default C<default_sub> is a no-op that always simply returns C<undef>.
 
@@ -375,27 +435,35 @@ It is of course possible for the C<default_sub> to specify that the previously d
     # with the default_sub "preserved" and without any other behavior specified
     # the following statement would not affect the normal operation of My::Module...
     my $Decoupler = Devel::Decouple->new;
-    $Decoupler->decouple 'My::Module', default_sub, preserved;
+    $Decoupler->decouple( 'My::Module', default_sub, preserved );
 
 If combined with specialized behavior in the C<as> sub-clause of a C<function> or C<functions> clause this permits surgical precision in what functions are redefined and how. See also, L<C<Devel::Decouple> ADVANCED TOPICS>.
 
+=back
 
-=head2 C<preserved>
+
+=head2 preserved
+
+=over
 
 The C<preserved> marker can be used in place of any C<as> sub-clause to indicate that the previous behavior of the imported function should be preserved.
 
+=back
 
 
-=head1 C<Devel::Decouple> ADVANCED TOPICS
+
+=head1 ADVANCED TOPICS
 
 Internally the patching of the symbol table is carried out by the C<Monkey::Patch> module. As such there is a 'stack' of code definitions preserved for all function definitions up to and including the original source definition. As with all stacks we can push new entities (code definitions) onto the stack and also pop them off. By using this feature you can modify the behavior of your functions on-the-fly.
 
-There is also the ability to redispatch to the next most recent previously defined code on the stack. By using this feature you can essentially create custom wrappers. These wrappers can alter the code incrementally by adding new features and behavior to previous code definitions.
+There is also the ability to redispatch to the next most recent previously defined code on the stack. By using this feature you can essentially create custom wrappers. These wrappers can alter the code by adding new features and behavior to previous code definitions.
 
 These are very powerful features and can be used to great advantage individually or together.
 
 
 =head2 The Stack
+
+=over
 
 Push code-definition entities onto the stack by calling C<decouple> on a new Devel::Decouple object instance and defining some new behavior, pop by calling C<revert> for specified functions on that instance... or by C<undef>ing the object entirely.
 
@@ -480,12 +548,16 @@ In contrast, calling C<decouple> on an I<already defined> C<Devel::Decouple> obj
     
     ### And so on...
     
-Caution should be exercised here as the C<Devel::Decouple> object instances are actually collections of stacks maintained for each function. It can become confusing to keep track of what behavior was specified in which objects and how those objects relate to the ordering of the underlying stacks. Please see L<C<Devel::Decouple> Testing Kata> for some ideas about how to deal with this issue.
+Caution should be exercised here as the C<Devel::Decouple> object instances are actually collections of stacks maintained for each function. It can become confusing to keep track of what behavior was specified in which objects and how those objects relate to the ordering of the underlying stacks. Please see L<Testing Kata> for some ideas about how to deal with this issue.
+
+=back
 
 
 =head2 Redispatching
 
-For any function definition you provide you have access to the immediately previous code definition on the stack. This behavior is passed to your new function definition as a sub-ref in the first element of C<@_>. The remainder of C<@_> will of course be the original arguments to the function.
+=over
+
+For any function definition you provide you have access to the immediately previous code definition on the stack. This behavior is passed to your new function definition as a sub-ref in the first element of C<@_>. The remainder of C<@_> contains the original arguments to the function.
 
     # Define a 'default_sub' that reports the arguments a function was called with
     # and then delegates back to the previous behavior on the stack...
@@ -501,20 +573,22 @@ For any function definition you provide you have access to the immediately previ
 
 If you wish, you can redispatch to any arbitrary depth down the stack of function definitions in this way, continually passing the original arguments along until ultimately terminating at the original source function definition.
 
-Combining the use of the stack and this re-dispatch mechanism is a powerful way to implement stack traces, data serialization, and other exploratory testing for I<all> the functions in a complex or convoluted name-space: C<Devel::Decouple> isn't just for redefining the imported functions. Using such a technique can help you to understand the behavior of legacy Perl code so that you can clear the seemingly insurmountable hurdle of writing the initial Characterization tests for that really ugly code that the boss wants you to extend by next Wednesday. It can also aid you in gradually adding increasingly granular test cases as you safely begin to refactor your code toward a more modern and maintainable idiom.
+Combining the use of the stack and this re-dispatch mechanism is a powerful way to implement stack traces, data serialization, and other exploratory testing for I<all> the functions in a complex or convoluted name-space. C<Devel::Decouple> isn't just for redefining the imported functions, although these can be automated to a greater extent by the use of the C<default_sub> clause. C<Devel::Decouple> can redine natively defined functions when listed explicitly in a C<function> or C<functions> clause.
+
+Using such a technique can help you to understand the behavior of legacy Perl code so that you can clear the seemingly insurmountable hurdle of writing the initial tests. By automating much of the exploratory analysis of dense code it can also aid you in gradually adding increasingly granular test cases as you begin to better understand the behavior of your code. Once you understand the behavior of your code well and have a handle on complex dependencies then safely refactoring toward a more modern and maintainable idiom is possible.
+
+=back
 
 
-=head2 C<Devel::Decouple> Testing Kata:
+=head2 Devel::Decouple Testing Kata
+
+=over
 
 Red. Green. Refactor.
 
 Helpful code snippets coming soon...
 
-
-
-=head1 TO DO
-
-Implement ability to patch native methods, not just imports.
+=back
 
 
 

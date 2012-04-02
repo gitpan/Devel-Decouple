@@ -3,3 +3,7 @@ Revision history for Devel-Decouple
 0.0.1  Mon Mar 12 18:47:19 2012
        Initial release.
 
+0.0.2  Fri Mar 30 10:35:23 2012
+       Documentation clean-up and correction
+       Added tests for native method overrides
+         and method calls to an uninitialized object

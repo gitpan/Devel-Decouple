@@ -5,7 +5,7 @@ use base 'Devel::Decouple';
 use strict;
 use warnings;
 use Carp;
-use version; our $VERSION = qv(0.0.1);
+use version; our $VERSION = qv(0.0.2);
 
 # run the invoked code via the perl debugger...
 sub DB::DB {
@@ -48,16 +48,16 @@ This module is intended to facilitate the testing and refactoring of legacy Perl
 
 To generate a simple report about a module's or script's use of imported functions you can use Devel::Decouple::DB via the debugger.
     
-    perl -d:Decouple myscript.pl
+    perl -d:Decouple::DB myscript.pl
     
 
-Then using the parent class Devel::Decouple, perhaps in a test file, you can easily redefine any of the functions that were listed to decouple (redefine) the problematic dependencies.
+Then using the parent class L<Devel::Decouple>, perhaps in a test file, you can easily redefine any of the functions that were listed to decouple (redefine) the problematic dependencies.
     
     # for the given module automatically redefine all called
     # functions that were imported (as no-ops)
     
     my $DD = Devel::Decouple->new();
-    $DD->decouple 'Some::Module';
+    $DD->decouple( 'Some::Module' );
     
 
 =head1 DESCRIPTION
