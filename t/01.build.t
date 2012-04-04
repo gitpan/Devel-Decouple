@@ -1,6 +1,7 @@
 use Test::More;
 use Test::Differences;
 use Test::Deep;
+use Test::Exception;
 
 use Devel::Decouple;
 use lib 't';
@@ -10,12 +11,10 @@ my $class  = 'Devel::Decouple';
 my $module = 'TestMod::Baz';
 my @modules = qw{
         TestMod::Foo
-        TestMod::Bar
-};
+        TestMod::Bar };
 my @functions = qw{
         prohibit
-        inhibit
-};
+        inhibit };
 my @methods = qw{
         new
         decouple
@@ -27,8 +26,7 @@ my @methods = qw{
         preserved
         module
         modules
-        called_imports
-};
+        called_imports };
 
 
 BASIC: {
@@ -38,18 +36,6 @@ BASIC: {
     can_ok( $class, @methods );
 }
 
-BASIC_BUILD: {
-    my $DD = Devel::Decouple->new->decouple( $module );
-    
-    #         GOT                     EXPECTED                    MESSAGE
-    is(       $DD->module,            $module,                   "returned the correct module name"     );
-    cmp_bag( [$DD->called_imports],  [qw{ prohibit inhibit }],   "returned the correct import names"    );
-    cmp_bag( [$DD->modules],         [qw{ TestMod::Foo
-                                          TestMod::Bar     }],   "returned the correct module names"    );
-    cmp_bag( [$DD->all_functions],   [qw{ prohibit inhibit
-                                          adhibit  exhibit }],   "returned the correct function names"  );
-}
-
 SUGAR_SYNTAX: {
     my $expected = {
         'TestMod::Baz'  =>  [qw{ TestMod::Foo TestMod::Bar }],
@@ -57,6 +43,8 @@ SUGAR_SYNTAX: {
         inhibit         =>  sub { return 1 },
         _DEFAULT_       =>  '_PRESERVED_',
     };
+    
+    # these should all be equivalent to $expected
     
     my $got1 = {
         $module,             from @modules,
@@ -89,6 +77,59 @@ SUGAR_SYNTAX: {
     eq_or_diff( $got2,      $expected,      "sugar syntax using 'default_sub' first" );
     eq_or_diff( $got3,      $expected,      "sugar syntax using 'functions' last"    );
     eq_or_diff( $got4,      $expected,      "sugar syntax using 'functions' first"   );
+}
+
+DEFAULT_PRESERVED: {
+    my $DD1 = Devel::Decouple->new;
+    $DD1->decouple( $module, from @modules,
+                        default_sub, preserved
+                        );
+    
+    #           GOT                     EXPECTED                    MESSAGE
+    is( TestMod::Baz::inhibit(),        "I'm inhibited",            "default 'inhibit'"     );
+    is( TestMod::Baz::prohibit(),       "I'm prohibited",           "default 'prohibit'"    );
+    
+    #note( explain $DD1 );
+}
+
+NON_IMPORT_OVERRIDE: {
+    is( TestMod::Baz::exhibit(),        "I'm inhibited",            "original 'exhibit'"            );
+    
+    my $DD1 = Devel::Decouple->new;
+    $DD1->decouple( $module, from @modules,
+                        function 'exhibit', as { return "I'm on exhibit" }
+                        );
+    
+    #           GOT                     EXPECTED                    MESSAGE
+    is( TestMod::Baz::exhibit(),        "I'm on exhibit",           "original 'exhibit'"            );
+    
+}
+
+UNINITIALIZED_METHOD_CALLS: {
+    my $DD1 = Devel::Decouple->new;
+    
+    #           GOT                     EXPECTED                    MESSAGE
+    throws_ok { $DD1->report }          qr{uninitialized object},   "throws on unitialized obj"        ;
+    is( $DD1->modules,                  undef,                      "uninitialized: modules is undef" );
+    is( $DD1->called_imports,           undef,                      "uninitialized: imports is undef" );
+    is( $DD1->all_functions,            undef,                      "uninitialized: functs is undef"  );
+    is( $DD1->module,                   undef,                      "uninitialized: module is undef"  );
+    is( $DD1->document,                 undef,                      "uninitialized: document is undef");
+    
+    isa_ok( $DD1->revert,               'Devel::Decouple',          "uninit revert returns object"  );
+    
+}
+
+BASIC_BUILD: {
+    my $DD = Devel::Decouple->new->decouple( $module );
+    
+    #         GOT                     EXPECTED                    MESSAGE
+    is(       $DD->module,            $module,                   "returned the correct module name"     );
+    cmp_bag( [$DD->called_imports],  [qw{ prohibit inhibit }],   "returned the correct import names"    );
+    cmp_bag( [$DD->modules],         [qw{ TestMod::Foo
+                                          TestMod::Bar     }],   "returned the correct module names"    );
+    cmp_bag( [$DD->all_functions],   [qw{ prohibit inhibit
+                                          adhibit  exhibit }],   "returned the correct function names"  );
 }
 
 CUSTOM_BUILD: {

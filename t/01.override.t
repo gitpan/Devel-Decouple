@@ -1,6 +1,5 @@
 use Test::More;
 use Test::Differences;
-use Test::Exception;
 
 use Devel::Decouple;
 use lib 't';
@@ -97,47 +96,5 @@ CUSTOM_OVERRIDES: {
     #note( explain $DD1 );
     #$DD1->report;
 }
-
-DEFAULT_PRESERVED: {
-    my $DD1 = Devel::Decouple->new;
-    $DD1->decouple( $module, from @modules,
-                        default_sub, preserved
-                        );
-    
-    #           GOT                     EXPECTED                    MESSAGE
-    is( TestMod::Baz::inhibit(),        "I'm inhibited",            "default 'inhibit'"     );
-    is( TestMod::Baz::prohibit(),       "I'm prohibited",           "default 'prohibit'"    );
-    
-    #note( explain $DD1 );
-}
-
-NON_IMPORT_OVERRIDE: {
-    is( TestMod::Baz::exhibit(),        "I'm inhibited",            "original 'exhibit'"            );
-    
-    my $DD1 = Devel::Decouple->new;
-    $DD1->decouple( $module, from @modules,
-                        function 'exhibit', as { return "I'm on exhibit" }
-                        );
-    
-    #           GOT                     EXPECTED                    MESSAGE
-    is( TestMod::Baz::exhibit(),        "I'm on exhibit",           "original 'exhibit'"            );
-    
-}
-
-UNINITIALIZED_METHOD_CALLS: {
-    my $DD1 = Devel::Decouple->new;
-    
-    #           GOT                     EXPECTED                    MESSAGE
-    throws_ok { $DD1->report }          qr{uninitialized object},   "throws on unitialized obj"        ;
-    is( $DD1->modules,                  undef,                      "uninitialized: modules is undef" );
-    is( $DD1->called_imports,           undef,                      "uninitialized: imports is undef" );
-    is( $DD1->all_functions,            undef,                      "uninitialized: functs is undef"  );
-    is( $DD1->module,                   undef,                      "uninitialized: module is undef"  );
-    is( $DD1->document,                 undef,                      "uninitialized: document is undef");
-    
-    isa_ok( $DD1->revert,               'Devel::Decouple',          "uninit revert returns object"  );
-    
-}
-
 
 done_testing;

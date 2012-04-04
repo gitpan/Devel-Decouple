@@ -2,7 +2,11 @@
 abstract: "Decouple code from imported functions"
 author:
   - 'Montgomery Conner <dev@namimedia.com>'
-build_requires: {}
+build_requires:
+  Test::Deep: 0
+  Test::Differences: 0
+  Test::Exception: 0
+  Test::More: 0
 configure_requires:
   ExtUtils::MakeMaker: 0
 dynamic_config: 1
@@ -21,8 +25,5 @@ requires:
   Monkey::Patch: 0
   PPI::Document: 0
   PPI::Find: 0
-  Test::Deep: 0
-  Test::Differences: 0
-  Test::More: 0
   version: 0
-version: v0.0.2
+version: v0.0.3

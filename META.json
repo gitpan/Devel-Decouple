@@ -21,7 +21,12 @@
    },
    "prereqs" : {
       "build" : {
-         "requires" : {}
+         "requires" : {
+            "Test::Deep" : 0,
+            "Test::Differences" : 0,
+            "Test::Exception" : 0,
+            "Test::More" : 0
+         }
       },
       "configure" : {
          "requires" : {
@@ -34,13 +39,10 @@
             "Monkey::Patch" : 0,
             "PPI::Document" : 0,
             "PPI::Find" : 0,
-            "Test::Deep" : 0,
-            "Test::Differences" : 0,
-            "Test::More" : 0,
             "version" : 0
          }
       }
    },
    "release_status" : "stable",
-   "version" : "v0.0.2"
+   "version" : "v0.0.3"
 }

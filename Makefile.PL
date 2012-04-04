@@ -9,11 +9,13 @@ WriteMakefile(
     ABSTRACT_FROM       => 'lib/Devel/Decouple.pm',
     PL_FILES            => {},
     EXE_FILES		=> [],
-    BUILD_REQUIRES 	=> {},
-    PREREQ_PM => {
+    BUILD_REQUIRES 	=> {
         'Test::More'   		=> 0,
 	'Test::Deep'		=> 0,
 	'Test::Differences'	=> 0,
+	'Test::Exception'	=> 0,
+    },
+    PREREQ_PM => {
         'version'      		=> 0,
 	'Class::Inspector'	=> 0,
 	'PPI::Document'		=> 0,
